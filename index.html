@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiriusXM Goal Mode — AI Feature Prototype</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- Navigation Header -->
+    <header class="bg-slate-800/95 backdrop-blur border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg sticky top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 text-white px-2.5 py-1.5 rounded-lg font-bold text-lg tracking-wider shadow-md shadow-blue-900/40">
+                SIRIUS<span class="text-blue-300">XM</span>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                    Goal Mode AI Prototype
+                    <span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-700/60 px-2 py-0.5 rounded font-mono font-medium">v3.0</span>
+                </h1>
+                <p class="text-xs text-slate-400">Time-Budgeted Audio Recommendation Engine • Powered by Gemini</p>
+            </div>
+        </div>
+
+        <!-- Tab Switching Controls -->
+        <div class="flex items-center space-x-2 mt-3 sm:mt-0">
+            <button id="tabBtnPrototype" onclick="switchTab('prototype')" 
+                class="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-md transition flex items-center space-x-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Interactive Prototype</span>
+            </button>
+            <button id="tabBtnChat" onclick="switchTab('chat')" 
+                class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition flex items-center space-x-2 border border-slate-700">
+                <i class="fa-solid fa-comments"></i>
+                <span>AI Taste Chat</span>
+                <span id="chatContextDot" class="hidden w-2 h-2 rounded-full bg-purple-400 animate-pulse" title="New queue ready for discussion"></span>
+            </button>
+            <button id="tabBtnOverview" onclick="switchTab('overview')" 
+                class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition flex items-center space-x-2 border border-slate-700">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Project Overview & Strategy</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- TAB 1: INTERACTIVE PROTOTYPE -->
+    <main id="prototypeTabView" class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Left Column: Input Control Panel -->
+        <section class="lg:col-span-5 bg-slate-800/80 border border-slate-700 rounded-xl p-5 flex flex-col justify-between shadow-md space-y-4">
+            <div class="space-y-4">
+                <div class="border-b border-slate-700 pb-3 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-sm font-semibold text-white flex items-center">
+                            <i class="fa-solid fa-sliders text-blue-400 mr-2"></i> Listener Input Controls
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Configure listening goals, API keys, and candidate music.</p>
+                    </div>
+                    <span id="apiStatusBadge" class="bg-amber-900/50 text-amber-300 border border-amber-700/50 px-2 py-0.5 rounded text-[10px] flex items-center">
+                        <i class="fa-solid fa-key mr-1"></i> Gemini Key Required
+                    </span>
+                </div>
+
+                <!-- API Key Inputs -->
+                <div class="space-y-3">
+                    <div>
+                        <label for="apiKeyInput" class="block text-xs font-medium text-slate-300 mb-1">
+                            Gemini API Key <span class="text-red-400">*</span>
+                        </label>
+                        <input type="password" id="apiKeyInput" placeholder="Paste YOUR_GEMINI_API_KEY_HERE" 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                        <p class="text-[10px] text-slate-400 mt-1">Free key from Google AI Studio. Stored strictly in browser session memory.</p>
+                    </div>
+
+                    <div>
+                        <label for="lastfmApiKeyInput" class="block text-xs font-medium text-slate-300 mb-1">
+                            Last.fm API Key <span class="text-slate-500 text-[10px]">(Optional — for playlist acoustic graph)</span>
+                        </label>
+                        <input type="password" id="lastfmApiKeyInput" placeholder="Paste your Last.fm API key"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                        <p class="text-[10px] text-slate-400 mt-1">Queries track/artist similarities. If omitted, Apple Music metadata is used.</p>
+                    </div>
+
+                    <div class="p-3 bg-slate-900/60 rounded-lg border border-slate-700/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label for="youtubeTokenInput" class="text-xs font-medium text-slate-300">
+                                YouTube API Key or Bearer Token <span class="text-slate-500 text-[10px]">(Optional)</span>
+                            </label>
+                            <span class="text-[9px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">No OAuth required</span>
+                        </div>
+                        <input type="password" id="youtubeTokenInput" placeholder="AIzaSy... (API Key) or ya29... (Bearer token)"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                        
+                        <label for="youtubePlaylistIdInput" class="block text-xs font-medium text-slate-300 pt-1">
+                            YouTube Playlist ID or URL <span class="text-slate-500 text-[10px]">(Optional)</span>
+                        </label>
+                        <input type="text" id="youtubePlaylistIdInput" placeholder="PLxxxxxxxx... or full playlist URL"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 transition">
+                        
+                        <button id="loadYoutubeBtn" type="button" onclick="loadYouTubePlaylist()"
+                            class="w-full mt-2 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-medium py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow-md shadow-red-950/40">
+                            <i class="fa-brands fa-youtube"></i>
+                            <span>Load YouTube Song Catalog</span>
+                        </button>
+                        <p id="youtubeAuthStatus" class="text-[10px] text-slate-400 mt-1">Paste a playlist to ground taste, or leave empty to generate recommendations directly from prompts.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Preset Scenarios -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Preset Scenarios (Quick Test)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="loadScenario(1)" class="bg-slate-700/80 hover:bg-slate-600 text-[11px] text-slate-200 py-1.5 px-2 rounded border border-slate-600 transition text-left truncate">
+                            1. Indie Discovery
+                        </button>
+                        <button onclick="loadScenario(2)" class="bg-slate-700/80 hover:bg-slate-600 text-[11px] text-slate-200 py-1.5 px-2 rounded border border-slate-600 transition text-left truncate">
+                            2. Ambient Focus
+                        </button>
+                        <button onclick="loadScenario(3)" class="bg-slate-700/80 hover:bg-slate-600 text-[11px] text-slate-200 py-1.5 px-2 rounded border border-slate-600 transition text-left truncate">
+                            3. Outside Discovery
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Goal Text Input -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="goalTextInput" class="text-xs font-medium text-slate-300">Goal Description</label>
+                        <span id="charCounter" class="text-[10px] text-slate-400 font-mono">0 / 500</span>
+                    </div>
+                    <textarea id="goalTextInput" rows="3" maxlength="500" placeholder="e.g., Replace fiction podcasts with economics and sports; keep my queue under 30 minutes..."
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition resize-none"></textarea>
+                </div>
+
+                <!-- Budget & Exclusions Controls -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="budgetInput" class="block text-xs font-medium text-slate-300 mb-1">Duration Budget (Mins)</label>
+                        <input type="number" id="budgetInput" min="1" max="120" value="30"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label for="exclusionsInput" class="block text-xs font-medium text-slate-300 mb-1">Explicit Exclusions</label>
+                        <input type="text" id="exclusionsInput" placeholder="e.g., country, fiction, holiday"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                    </div>
+                </div>
+
+                <!-- History Context Setting -->
+                <div class="bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/60 flex items-start space-x-2.5">
+                    <input type="checkbox" id="includeHistoryCheck" checked class="mt-1 rounded bg-slate-800 border-slate-600 text-blue-600 focus:ring-0">
+                    <label for="includeHistoryCheck" class="text-xs text-slate-300 cursor-pointer">
+                        <span class="font-medium text-slate-200">Include Listener History:</span> Heavy fiction podcast listener.
+                        <span class="text-slate-400 block text-[10px]">Tests if Goal Mode properly overrides existing habit inertia.</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Submit Action -->
+            <div class="pt-3 border-t border-slate-700">
+                <button id="generateBtn" onclick="generateGoalQueue()" 
+                    class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-xs sm:text-sm transition flex items-center justify-center space-x-2 shadow-lg shadow-blue-900/40">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Generate Goal Queue</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Column: Results & AI Queue -->
+        <section class="lg:col-span-7 space-y-6 flex flex-col">
+            
+            <!-- Output Panel -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 flex-1 flex flex-col shadow-md">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                    <h2 class="text-sm font-semibold text-white flex items-center">
+                        <i class="fa-solid fa-list-check text-blue-400 mr-2"></i> Generated Audio Queue
+                    </h2>
+                    <div id="statusTag" class="bg-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded-full font-mono">
+                        Ready
+                    </div>
+                </div>
+
+                <!-- Placeholder state -->
+                <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-500">
+                    <i class="fa-solid fa-headphones text-4xl mb-3 text-slate-600"></i>
+                    <p class="text-sm font-medium">No active goal queue generated yet.</p>
+                    <p class="text-xs text-slate-400 max-w-sm mt-1">Enter a listening goal and click "Generate Goal Queue" to parse parameters, enforce budget constraints, and assemble tracks.</p>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loadingState" class="hidden flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-500 mb-3"></i>
+                    <p class="text-sm font-medium text-slate-200" id="loadingStateTitle">Parsing goal & evaluating candidate pool...</p>
+                    <p class="text-xs text-slate-400 mt-1" id="loadingStateSubtitle">Enforcing budget constraints & topic exclusions</p>
+                </div>
+
+                <!-- AI Output Content Container -->
+                <div id="outputContent" class="hidden space-y-4">
+                    
+                    <!-- Goal Extraction Summary Card -->
+                    <div class="bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-xs space-y-2">
+                        <div class="flex justify-between border-b border-slate-800 pb-2">
+                            <span class="text-slate-400">Normalized Goal:</span>
+                            <span id="resNormalizedGoal" class="text-slate-200 font-medium text-right max-w-xs"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <span class="text-slate-400 block mb-0.5">Preferred Topics:</span>
+                                <div id="resPreferredTopics" class="flex flex-wrap gap-1"></div>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block mb-0.5">Excluded Topics:</span>
+                                <div id="resExcludedTopics" class="flex flex-wrap gap-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-950/30 border border-blue-800/50 rounded-lg p-3">
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-300">AI Recommendation Note</span>
+                        <p id="resAiComment" class="text-xs text-slate-300 mt-1"></p>
+                    </div>
+
+                    <!-- Constraint Validation Metrics -->
+                    <div id="constraintMetrics" class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                            <span class="text-slate-400 text-[10px] block">Duration Used</span>
+                            <span id="metricDuration" class="font-semibold text-slate-200 font-mono">0 / 0 m</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                            <span class="text-slate-400 text-[10px] block">Exclusion Check</span>
+                            <span id="metricExclusion" class="font-semibold text-emerald-400">Passed</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                            <span class="text-slate-400 text-[10px] block">History Override</span>
+                            <span id="metricHistory" class="font-semibold text-blue-400">Active</span>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Queue List -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Queue Items</h3>
+                        <div id="queueList" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Raw JSON Debug Collapse -->
+                    <details class="text-xs bg-slate-900 border border-slate-800 rounded-lg p-2.5">
+                        <summary class="text-slate-400 cursor-pointer hover:text-slate-200 font-mono text-[11px]">View Raw API JSON Response</summary>
+                        <pre id="rawJsonResponse" class="mt-2 text-[10px] text-emerald-400 font-mono overflow-x-auto p-2 bg-black/40 rounded border border-slate-800/80 max-h-48"></pre>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <!-- Already-Heard Playlist -->
+        <section class="lg:col-span-12 bg-slate-800/40 border border-slate-700 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400 mr-2"></i> Already Heard Playlist
+                </h3>
+                <span id="playlistHistoryStatus" class="text-xs text-slate-400">Load a YouTube playlist to populate</span>
+            </div>
+            <div id="playlistHistoryList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto pr-1"></div>
+        </section>
+
+        <!-- Candidate Catalog Reference Table with Song Covers -->
+        <section class="lg:col-span-12 bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200 flex items-center">
+                        <i class="fa-solid fa-compact-disc text-blue-400 mr-2"></i> Candidate Recommendations Catalog
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Candidate pool evaluated against listener goal constraints.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="loadMoreTracksForPrompt()" 
+                        class="bg-blue-600/30 hover:bg-blue-600/50 active:bg-blue-700 text-blue-300 border border-blue-500/40 px-2.5 py-1 rounded text-xs flex items-center space-x-1.5 transition shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+                        <span>Load Songs for Prompt</span>
+                    </button>
+                    <span id="catalogStatus" class="text-xs text-slate-400 font-mono">Load playlist or generate by prompt</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-700/60 rounded-lg">
+                <table class="w-full text-left text-xs text-slate-300 border-collapse">
+                    <thead class="sticky top-0 bg-slate-900 border-b border-slate-700 text-slate-400 z-10">
+                        <tr>
+                            <th class="p-2.5 w-14">Cover</th>
+                            <th class="p-2.5">ID</th>
+                            <th class="p-2.5">Title</th>
+                            <th class="p-2.5">Artist / Creator</th>
+                            <th class="p-2.5">Category</th>
+                            <th class="p-2.5">Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogTableBody" class="divide-y divide-slate-800 bg-slate-900/40">
+                        <!-- Populated dynamically by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- TAB 2: AI TASTE CHAT & PREFERENCE DIALOGUE -->
+    <main id="chatTabView" class="hidden flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Left Column: Synchronized Recommender Context & Taste Notes -->
+        <section class="lg:col-span-4 space-y-4 flex flex-col">
+            
+            <!-- Context Card -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 shadow-md space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2.5">
+                    <h2 class="text-xs font-semibold text-white flex items-center">
+                        <i class="fa-solid fa-satellite-dish text-blue-400 mr-2"></i> Synced Goal State
+                    </h2>
+                    <span id="chatSyncStatusBadge" class="bg-blue-900/50 text-blue-300 border border-blue-700/40 px-2 py-0.5 rounded text-[10px] font-mono">
+                        Live Sync
+                    </span>
+                </div>
+
+                <div id="chatActiveGoalCard" class="bg-slate-900/80 border border-slate-700/80 rounded-lg p-3 text-xs space-y-2">
+                    <div>
+                        <span class="text-[10px] text-slate-400 block">Current Goal:</span>
+                        <p id="chatContextGoalText" class="text-slate-200 font-medium mt-0.5 italic">None set yet</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-800 text-[11px]">
+                        <span class="text-slate-400">Budget: <strong id="chatContextBudget" class="text-slate-200 font-mono">30m</strong></span>
+                        <span class="text-slate-400">Exclusions: <strong id="chatContextExclusions" class="text-slate-200">None</strong></span>
+                    </div>
+                </div>
+
+                <!-- Snapshot of Current Queue in Chat Sidebar -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-[11px] font-medium text-slate-300">Active Queue Items</span>
+                        <span id="chatQueueCountBadge" class="text-[10px] text-slate-400 font-mono">0 tracks</span>
+                    </div>
+                    <div id="chatQueueSnapshotList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        <p class="text-[11px] text-slate-500 italic p-2 bg-slate-900/50 rounded border border-slate-800 text-center">
+                            Generate a queue in Tab 1 to critique specific tracks here.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learned Conversational Preferences Card -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 shadow-md space-y-3 flex-1 flex flex-col justify-between">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                        <h3 class="text-xs font-semibold text-white flex items-center">
+                            <i class="fa-solid fa-brain text-purple-400 mr-2"></i> Learned Chat Preferences
+                        </h3>
+                        <span class="text-[9px] bg-purple-900/50 text-purple-300 border border-purple-700/40 px-1.5 py-0.5 rounded font-mono">
+                            Influences Goal Mode
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Preferences & critiques discovered during chat are saved here and automatically injected into subsequent recommendation calls.
+                    </p>
+                    <div id="learnedTasteNotesContainer" class="flex flex-wrap gap-1.5 min-h-[50px] p-2 bg-slate-900/80 border border-slate-800 rounded-lg">
+                        <span class="text-[10px] text-slate-500 italic">No conversational preferences recorded yet. Tell the AI what you like or dislike!</span>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-700/80 space-y-2">
+                    <button onclick="applyLearnedTasteToRecommender()" 
+                        class="w-full bg-purple-600/30 hover:bg-purple-600/50 active:bg-purple-700 text-purple-200 border border-purple-500/40 text-xs font-medium py-2 rounded-lg transition flex items-center justify-center space-x-1.5 shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
+                        <span>Apply Insights & Run Goal Mode</span>
+                    </button>
+                    <button onclick="clearChatPreferences()" 
+                        class="w-full bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-300 text-[10px] py-1 rounded transition border border-slate-800">
+                        Reset Learned Chat Preferences
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Interactive Chat Interface -->
+        <section class="lg:col-span-8 bg-slate-800/80 border border-slate-700 rounded-xl flex flex-col shadow-md overflow-hidden min-h-[600px]">
+            
+            <!-- Chat Header -->
+            <div class="px-5 py-3.5 border-b border-slate-700 flex justify-between items-center bg-slate-800/95">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-blue-500 flex items-center justify-center text-white text-xs shadow-md">
+                        <i class="fa-solid fa-sparkles"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xs sm:text-sm font-semibold text-white flex items-center gap-1.5">
+                            SiriusXM AI Taste Concierge
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        </h2>
+                        <p class="text-[10px] text-slate-400">Conversational taste exploration & recommendation feedback</p>
+                    </div>
+                </div>
+                <button onclick="clearChatHistory()" class="text-slate-400 hover:text-slate-200 text-xs px-2.5 py-1 rounded bg-slate-700/50 hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-trash-can mr-1 text-[10px]"></i> Clear Chat
+                </button>
+            </div>
+
+            <!-- Quick Preset Prompt Starters -->
+            <div class="px-4 py-2 border-b border-slate-700/80 bg-slate-900/50 overflow-x-auto flex items-center space-x-2 text-[11px] scrollbar-none">
+                <span class="text-slate-400 text-[10px] whitespace-nowrap uppercase tracking-wider font-semibold mr-1">Suggestions:</span>
+                <button onclick="sendQuickPrompt('Why did you recommend the tracks currently in my queue?')" 
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 whitespace-nowrap transition">
+                    Why did you recommend these?
+                </button>
+                <button onclick="sendQuickPrompt('I want more upbeat tempo and less acoustic music. Can you suggest a refined goal?')" 
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 whitespace-nowrap transition">
+                    More upbeat, less acoustic
+                </button>
+                <button onclick="sendQuickPrompt('What specific subgenres or artists would complement my current playlist?')" 
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 whitespace-nowrap transition">
+                    Explore complementary subgenres
+                </button>
+                <button onclick="sendQuickPrompt('Help me create a 45-minute focus session without vocals.')" 
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 whitespace-nowrap transition">
+                    45m focus without vocals
+                </button>
+            </div>
+
+            <!-- Chat Message Feed -->
+            <div id="chatMessagesContainer" class="flex-1 p-5 overflow-y-auto space-y-4 max-h-[500px]">
+                <div class="flex items-start space-x-3">
+                    <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] flex-shrink-0 mt-0.5 shadow">
+                        <i class="fa-solid fa-headphones"></i>
+                    </div>
+                    <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-200 max-w-xl space-y-2 shadow-sm">
+                        <p class="leading-relaxed">
+                            Hello! I am your <strong>SiriusXM Taste Concierge</strong>. I have direct access to your current Goal Mode settings, loaded playlist signals, and queue recommendations.
+                        </p>
+                        <p class="leading-relaxed text-slate-300">
+                            Tell me what you liked or disliked about your recent queue, explore new musical directions, or ask me to propose a new goal. Any taste preferences we uncover will directly steer future recommendations!
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <div class="p-4 border-t border-slate-700 bg-slate-900/80">
+                <form id="chatInputForm" onsubmit="event.preventDefault(); sendChatMessage();" class="flex items-center space-x-2">
+                    <input type="text" id="chatTextInput" placeholder="Discuss recommendations, provide track feedback, or refine your taste..."
+                        class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                    <button type="submit" id="chatSendBtn"
+                        class="bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-md shadow-purple-950/40">
+                        <span>Send</span>
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    </button>
+                </form>
+                <div class="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-400">
+                    <span>Powered by Gemini • Real-time taste synchronization</span>
+                    <span id="chatTypingIndicator" class="hidden text-purple-400 font-mono animate-pulse">
+                        <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> AI Concierge is reflecting...
+                    </span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- TAB 3: PROJECT OVERVIEW & STRATEGY -->
+    <main id="overviewTabView" class="hidden flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+        
+        <!-- Hero Header -->
+        <div class="bg-gradient-to-r from-blue-900/60 via-slate-800 to-slate-900 border border-blue-700/50 rounded-2xl p-6 shadow-xl">
+            <div class="max-w-3xl space-y-2">
+                <div class="inline-flex items-center space-x-2 bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-1 rounded-full text-xs font-semibold">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                    <span>SiriusXM Pandora • Strategic AI Feature Spec</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white tracking-tight">Goal-Based Audio Listening System</h2>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    A machine-learning and LLM-assisted listening mode enabling listeners to establish explicit, time-bounded listening goals with strict topic exclusions that immediately override historical collaborative filtering habits.
+                </p>
+            </div>
+        </div>
+
+        <!-- 4 Core Pillars Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-comment-dots"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-white">Natural Language Intent</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">Converts freeform input (up to 500 chars) into normalized goals, preferred topics, and hard negative exclusions without retraining existing recommender models.</p>
+            </div>
+
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-white">Exact Duration Budgeting</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">Enforces 1–120 minute queue constraints, packing audio candidates precisely to prevent over-run and respect limited user listening intervals.</p>
+            </div>
+
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-red-600/30 text-red-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-white">Deterministic Exclusions</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">Guarantees zero unwanted content slips into the queue. Excluded categories or tags are filtered with code-level guards before playback.</p>
+            </div>
+
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 space-y-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-600/30 text-amber-400 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-rotate"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-white">Habit Override & Fallback</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">Overrides habitual listening (e.g., fiction podcasts) and dynamically identifies popular tracks fitting preferred topics if the immediate pool yields no match.</p>
+            </div>
+        </div>
+
+        <!-- Problem Statement & Solution -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 space-y-3">
+                <h3 class="text-sm font-semibold text-white flex items-center">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 mr-2"></i> Problem Statement
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Adult SiriusXM Pandora Premium listeners who want to change their listening habits frequently receive familiar recommendations that conflict with their current intentions—such as serialized fiction podcasts instead of economics or sports.
+                </p>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Under traditional collaborative filtering, listeners must search manually, skip repetitive recommendations, or continually train algorithms with thumbs-down signals, consuming limited listening time and diminishing subscription value.
+                </p>
+            </div>
+
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 space-y-3">
+                <h3 class="text-sm font-semibold text-white flex items-center">
+                    <i class="fa-solid fa-shield-halved text-emerald-400 mr-2"></i> How SiriusXM Can Implement It
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    SiriusXM's core differentiation is its proprietary <span class="text-blue-300 font-medium">Music Genome Project</span> (450+ musical attributes) and exclusive talk/sports programming. The Build/Buy/Partner analysis recommends a <span class="text-emerald-300 font-medium">Partner model with a System Integrator (Slalom / EPAM)</span> for a 16-week sprint.
+                </p>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    The SI deploys the LLM orchestration gateway, AI guardrails, and knapsack time-budget packing inside SiriusXM’s AWS VPC with zero-data-retention, safeguarding user privacy (CCPA/CPRA, VPPA) while transferring full IP ownership.
+                </p>
+            </div>
+        </div>
+
+        <!-- Team Members Section -->
+        <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-white flex items-center">
+                    <i class="fa-solid fa-users text-purple-400 mr-2"></i> Project Team Members
+                </h3>
+                <span class="text-xs text-slate-400 font-mono">Group 9</span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Member A -->
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/40 flex items-center justify-center font-bold text-xs">
+                            A
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Team Member A</span>
+                    </div>
+                    <p class="text-sm font-semibold text-white mt-1 border-t border-slate-800 pt-2"> Giang Khuu </p>
+                </div>
+
+                <!-- Member B -->
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-bold text-xs">
+                            B
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Team Member B</span>
+                    </div>
+                    <p class="text-sm font-semibold text-white mt-1 border-t border-slate-800 pt-2"> Lira Sandoval Campos </p>
+                </div>
+
+                <!-- Member C -->
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-purple-600/30 text-purple-400 border border-purple-500/40 flex items-center justify-center font-bold text-xs">
+                            C
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Team Member C</span>
+                    </div>
+                    <p class="text-sm font-semibold text-white mt-1 border-t border-slate-800 pt-2"> Hudson Trussell </p>
+                </div>
+
+                <!-- Member D -->
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-8 h-8 rounded-lg bg-amber-600/30 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold text-xs">
+                            D
+                        </div>
+                        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Team Member D</span>
+                    </div>
+                    <p class="text-sm font-semibold text-white mt-1 border-t border-slate-800 pt-2"> Azimjon Izzatillaev </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+        SiriusXM Goal Mode AI Prototype • Strategic AI Feature Spec & Course Submission Requirements
+    </footer>
+
+    <script>
+        // Global state
+        let CATALOG_ITEMS = [];
+        let PLAYLIST_ITEMS = [];
+        let playlistPreferenceSummary = "";
+        let playlistVideoIds = new Set();
+        let geminiModelCandidates = [];
+        let CHAT_HISTORY = [];
+        let CHAT_TASTE_INSIGHTS = [];
+        let LAST_RECOMMENDATION_DATA = null;
+
+        // Preset Scenarios
+        const SCENARIOS = {
+            1: {
+                goal: "Find new indie and alternative music with atmospheric guitars and thoughtful lyrics, similar to my playlist, under 30 minutes.",
+                budget: 30,
+                exclusions: "country, holiday music",
+                history: false
+            },
+            2: {
+                goal: "Build a calm focus queue of ambient, downtempo, and instrumental electronic music similar to my playlist, under 30 minutes.",
+                budget: 30,
+                exclusions: "vocals, heavy metal",
+                history: false
+            },
+            3: {
+                goal: "I'm looking for a playlist with some content outside my recommendations. Can you recommend music similar to \"Danse Macabre\"?",
+                budget: 30,
+                exclusions: "",
+                history: false
+            }
+        };
+
+        // Initialize UI on load
+        window.onload = function() {
+            renderCatalogTable();
+            setupCharCounter();
+            loadScenario(1);
+        };
+
+        function switchTab(tabId) {
+            const protoView = document.getElementById("prototypeTabView");
+            const overviewView = document.getElementById("overviewTabView");
+            const chatView = document.getElementById("chatTabView");
+            const protoBtn = document.getElementById("tabBtnPrototype");
+            const overviewBtn = document.getElementById("tabBtnOverview");
+            const chatBtn = document.getElementById("tabBtnChat");
+
+            const activeClass = "px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-md transition flex items-center space-x-2";
+            const inactiveClass = "px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition flex items-center space-x-2 border border-slate-700";
+
+            protoView.classList.add("hidden");
+            overviewView.classList.add("hidden");
+            chatView.classList.add("hidden");
+            protoBtn.className = inactiveClass;
+            overviewBtn.className = inactiveClass;
+            chatBtn.className = inactiveClass;
+
+            if (tabId === "prototype") {
+                protoView.classList.remove("hidden");
+                protoBtn.className = activeClass;
+            } else if (tabId === "overview") {
+                overviewView.classList.remove("hidden");
+                overviewBtn.className = activeClass;
+            } else if (tabId === "chat") {
+                chatView.classList.remove("hidden");
+                chatBtn.className = activeClass;
+                const dot = document.getElementById("chatContextDot");
+                if (dot) dot.classList.add("hidden");
+                refreshChatContextDisplay();
+            }
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toastContainer");
+            if (!container) return;
+            const toast = document.createElement("div");
+            const colors = {
+                success: "bg-emerald-950/90 text-emerald-200 border-emerald-700",
+                error: "bg-red-950/90 text-red-200 border-red-700",
+                warning: "bg-amber-950/90 text-amber-200 border-amber-700",
+                info: "bg-slate-800/95 text-slate-200 border-slate-700"
+            };
+            const icons = {
+                success: "fa-circle-check text-emerald-400",
+                error: "fa-circle-xmark text-red-400",
+                warning: "fa-triangle-exclamation text-amber-400",
+                info: "fa-circle-info text-blue-400"
+            };
+            toast.className = `flex items-start space-x-2.5 p-3 rounded-lg border shadow-xl backdrop-blur text-xs pointer-events-auto transition-all duration-300 opacity-0 translate-y-2 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} mt-0.5 text-sm flex-shrink-0"></i>
+                <div class="flex-1 font-medium leading-relaxed">${message}</div>
+            `;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove("opacity-0", "translate-y-2");
+            });
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-y-2");
+                setTimeout(() => toast.remove(), 300);
+            }, 4200);
+        }
+
+        function setupCharCounter() {
+            const textarea = document.getElementById("goalTextInput");
+            const counter = document.getElementById("charCounter");
+            if (!textarea || !counter) return;
+            textarea.addEventListener("input", () => {
+                counter.textContent = `${textarea.value.length} / 500`;
+            });
+        }
+
+        function loadScenario(num) {
+            const scenario = SCENARIOS[num];
+            if (!scenario) return;
+            document.getElementById("goalTextInput").value = scenario.goal;
+            document.getElementById("budgetInput").value = scenario.budget;
+            document.getElementById("exclusionsInput").value = scenario.exclusions;
+            document.getElementById("includeHistoryCheck").checked = scenario.history;
+            document.getElementById("charCounter").textContent = `${scenario.goal.length} / 500`;
+            showToast(`Loaded Preset Scenario ${num}`, "info");
+        }
+
+        function renderCatalogTable() {
+            const tbody = document.getElementById("catalogTableBody");
+            if (!CATALOG_ITEMS.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-6 text-center text-slate-500 italic">
+                            No candidate recommendations loaded yet. Enter a YouTube playlist or click "Generate Goal Queue" to curate directly from your prompt.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            tbody.innerHTML = CATALOG_ITEMS.map(item => `
+                <tr class="hover:bg-slate-800/50 transition">
+                    <td class="p-2.5">
+                        <img data-catalog-id="${item.id}"
+                             src="${item.cover || `https://placehold.co/80x80/1e293b/64748b?text=Music`}" 
+                             alt="${item.title}" 
+                             class="w-10 h-10 rounded object-cover border border-slate-700 bg-slate-800 flex-shrink-0 shadow-sm"
+                             onerror="this.src='https://placehold.co/80x80/1e293b/64748b?text=Music'">
+                    </td>
+                    <td class="p-2.5 font-mono text-blue-400 font-medium text-[11px]">${item.id}</td>
+                    <td class="p-2.5 font-medium text-slate-200">
+                        ${item.title}
+                        ${item.tags.includes("outside-discovery") || item.tags.includes("prompt-curated") ? '<span class="ml-1.5 bg-purple-900/60 text-purple-300 border border-purple-700/50 text-[9px] px-1.5 py-0.5 rounded font-sans inline-flex items-center"><i class="fa-solid fa-sparkles text-purple-400 text-[8px] mr-1"></i>Prompt Match</span>' : ''}
+                        ${item.tags.includes("budget-filler") ? '<span class="ml-1.5 bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 text-[9px] px-1.5 py-0.5 rounded font-sans inline-flex items-center"><i class="fa-solid fa-stopwatch text-cyan-400 text-[8px] mr-1"></i>Budget Fill</span>' : ''}
+                        ${item.tags.includes("popular-track") ? '<span class="ml-1.5 bg-amber-900/60 text-amber-300 border border-amber-700/50 text-[9px] px-1.5 py-0.5 rounded font-sans inline-flex items-center"><i class="fa-solid fa-fire text-amber-400 text-[8px] mr-1"></i>Popular Hit</span>' : ''}
+                    </td>
+                    <td class="p-2.5 text-slate-300">${item.artist}</td>
+                    <td class="p-2.5"><span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] border border-slate-700">${item.category}</span></td>
+                    <td class="p-2.5 text-slate-400 text-[11px] max-w-xs truncate">${item.tags.join(", ")}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderPlaylistHistory() {
+            const container = document.getElementById("playlistHistoryList");
+            document.getElementById("playlistHistoryStatus").textContent = `${PLAYLIST_ITEMS.length} songs loaded from playlist`;
+            container.innerHTML = PLAYLIST_ITEMS.map(item => `
+                <div class="bg-slate-900/70 border border-slate-700/80 rounded-lg p-2.5 flex items-center space-x-3">
+                    <img src="${item.cover}" alt="${item.title}" 
+                         class="w-11 h-11 rounded object-cover border border-slate-700 flex-shrink-0 bg-slate-800 shadow"
+                         onerror="this.src='https://placehold.co/80x80/1e293b/64748b?text=Music'">
+                    <div class="overflow-hidden flex-1">
+                        <p class="text-xs font-medium text-slate-200 truncate">${item.title}</p>
+                        <p class="text-[11px] text-amber-300 truncate mt-0.5">${item.artist || "Unknown artist"}</p>
+                        <span class="inline-block text-[9px] text-slate-400 font-mono mt-0.5">${item.duration}m</span>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function parseDuration(isoDuration) {
+            const match = (isoDuration || "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (!match) return 0;
+            return Math.max(1, Math.ceil((Number(match[1] || 0) * 60) + Number(match[2] || 0) + (Number(match[3] || 0) / 60)));
+        }
+
+        function parseDurationSeconds(isoDuration) {
+            const match = (isoDuration || "").match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (!match) return 0;
+            return (Number(match[1] || 0) * 3600) + (Number(match[2] || 0) * 60) + Number(match[3] || 0);
+        }
+
+        function normalizeSongKey(title) {
+            return (title || "").toLowerCase()
+                .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")
+                .replace(/\b(official|audio|video|lyrics?|lyric video|live|remaster(ed)?|visualizer|music video|hd|4k|extended|edit|version|remix|cover|instrumental|sped|slowed)\b/g, " ")
+                .replace(/[^a-z0-9]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        function extractPlaylistId(input) {
+            if (!input) return "";
+            input = input.trim();
+            if (input.includes("youtube.com") || input.includes("youtu.be")) {
+                try {
+                    const parsed = new URL(input);
+                    const listParam = parsed.searchParams.get("list");
+                    if (listParam) return listParam;
+                } catch {
+                    const match = input.match(/[?&]list=([^&#]+)/);
+                    if (match) return match[1];
+                }
+            }
+            return input;
+        }
+
+        function getYouTubeRequestConfig(tokenOrKey, url) {
+            const isApiKey = !tokenOrKey.startsWith("ya29.") && !tokenOrKey.toLowerCase().startsWith("bearer ");
+            if (isApiKey) {
+                const separator = url.includes("?") ? "&" : "?";
+                return {
+                    url: `${url}${separator}key=${encodeURIComponent(tokenOrKey.trim())}`,
+                    headers: {}
+                };
+            } else {
+                const cleanToken = tokenOrKey.replace(/^Bearer\s+/i, "").trim();
+                return {
+                    url: url,
+                    headers: { Authorization: `Bearer ${cleanToken}` }
+                };
+            }
+        }
+
+        function getPreviouslyRecommendedIds() {
+            try {
+                return JSON.parse(sessionStorage.getItem("goalModePreviouslyRecommended") || "[]");
+            } catch {
+                return [];
+            }
+        }
+
+        function rememberRecommendedIds(recommendations) {
+            const ids = new Set(getPreviouslyRecommendedIds());
+            recommendations.forEach(item => ids.add(item.content_id));
+            sessionStorage.setItem("goalModePreviouslyRecommended", JSON.stringify([...ids]));
+        }
+
+        function extractLastfmImage(imageArray) {
+            if (!Array.isArray(imageArray) || !imageArray.length) return "";
+            const priorities = ["extralarge", "large", "medium", "small"];
+            for (const size of priorities) {
+                const imgObj = imageArray.find(i => i.size === size);
+                const url = imgObj?.["#text"]?.trim();
+                if (url && url.startsWith("http") && !url.includes("2a96cbd8b46e442fc41c2b86b821562f")) {
+                    return url;
+                }
+            }
+            for (const item of imageArray) {
+                const url = item?.["#text"]?.trim();
+                if (url && url.startsWith("http") && !url.includes("2a96cbd8b46e442fc41c2b86b821562f")) {
+                    return url;
+                }
+            }
+            return "";
+        }
+
+        function loadCoverAsync(imgElement, artist, title, lastfmApiKey) {
+            if (!imgElement || !artist || !title) return;
+            resolveTrackCover(artist, title, lastfmApiKey).then(url => {
+                if (url && imgElement) {
+                    imgElement.src = url;
+                }
+            }).catch(() => {});
+        }
+
+        function fetchItunesArtwork(artist, track) {
+            return new Promise((resolve) => {
+                const callbackName = "itunes_art_" + Math.random().toString(36).substring(2, 9);
+                const script = document.createElement("script");
+                let timedOut = false;
+                const timer = setTimeout(() => {
+                    timedOut = true;
+                    cleanup();
+                    resolve(null);
+                }, 3500);
+
+                function cleanup() {
+                    clearTimeout(timer);
+                    try { delete window[callbackName]; } catch {}
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                }
+
+                window[callbackName] = function(data) {
+                    if (timedOut) return;
+                    cleanup();
+                    const rawArt = data?.results?.[0]?.artworkUrl100;
+                    if (rawArt) {
+                        const hiResArt = rawArt.replace("100x100bb", "300x300bb").replace("100x100", "300x300");
+                        resolve(hiResArt);
+                    } else {
+                        resolve(null);
+                    }
+                };
+
+                script.onerror = () => {
+                    if (timedOut) return;
+                    cleanup();
+                    resolve(null);
+                };
+
+                const cleanQuery = `${artist} ${track}`.replace(/[\(\)\[\]\-]/g, " ").replace(/\s+/g, " ").trim();
+                script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQuery)}&entity=song&limit=1&callback=${callbackName}`;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function resolveTrackCover(artist, title, lastfmApiKey) {
+            const cacheKey = `${artist}:${title}`.toLowerCase();
+            const cachedCovers = JSON.parse(sessionStorage.getItem("goalModeVerifiedCovers") || "{}");
+            if (cachedCovers[cacheKey]) return cachedCovers[cacheKey];
+
+            let coverUrl = "";
+
+            if (lastfmApiKey) {
+                try {
+                    const params = new URLSearchParams({
+                        method: "track.getInfo",
+                        api_key: lastfmApiKey,
+                        artist: artist,
+                        track: title,
+                        autocorrect: "1",
+                        format: "json"
+                    });
+                    const res = await fetch(`https://ws.audioscrobbler.com/2.0/?${params}`);
+                    const data = await res.json();
+                    coverUrl = extractLastfmImage(data.track?.album?.image);
+
+                    if (!coverUrl && data.track?.album?.title) {
+                        const albumParams = new URLSearchParams({
+                            method: "album.getInfo",
+                            api_key: lastfmApiKey,
+                            artist: data.track.album.artist || artist,
+                            album: data.track.album.title,
+                            autocorrect: "1",
+                            format: "json"
+                        });
+                        const albumRes = await fetch(`https://ws.audioscrobbler.com/2.0/?${albumParams}`);
+                        const albumData = await albumRes.json();
+                        coverUrl = extractLastfmImage(albumData.album?.image);
+                    }
+                } catch {
+                    // Fall back cleanly
+                }
+            }
+
+            if (!coverUrl) {
+                try {
+                    coverUrl = (await fetchItunesArtwork(artist, title)) || "";
+                } catch {
+                    // Fall back cleanly
+                }
+            }
+
+            if (coverUrl) {
+                cachedCovers[cacheKey] = coverUrl;
+                sessionStorage.setItem("goalModeVerifiedCovers", JSON.stringify(cachedCovers));
+            }
+
+            return coverUrl;
+        }
+
+        async function enrichCandidateCoversProgressively(lastfmApiKey) {
+            if (!CATALOG_ITEMS || !CATALOG_ITEMS.length) return;
+            const itemsToFetch = CATALOG_ITEMS.slice(0, 60);
+            const concurrency = 5;
+            for (let i = 0; i < itemsToFetch.length; i += concurrency) {
+                const chunk = itemsToFetch.slice(i, i + concurrency);
+                await Promise.all(chunk.map(async item => {
+                    if (item.cover && !item.cover.includes("placehold.co")) return;
+                    const cover = await resolveTrackCover(item.artist, item.title, lastfmApiKey);
+                    if (cover) {
+                        item.cover = cover;
+                        const imgEl = Array.from(document.querySelectorAll("img[data-catalog-id]")).find(el => el.getAttribute("data-catalog-id") === item.id);
+                        if (imgEl) {
+                            imgEl.src = cover;
+                        }
+                    }
+                }));
+            }
+        }
+
+        async function resolveGeminiModelCandidates(apiKey) {
+            if (geminiModelCandidates.length > 0) return geminiModelCandidates;
+            
+            const fallbackChain = [
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+                "gemini-1.5-flash",
+                "gemini-2.0-flash-lite",
+                "gemini-1.5-flash-8b"
+            ];
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+                const data = await response.json();
+                
+                if (response.ok && Array.isArray(data.models)) {
+                    const availableModels = data.models
+                        .filter(m => m.supportedGenerationMethods?.includes("generateContent"))
+                        .map(m => m.name.replace(/^models\//, ""))
+                        .filter(name => name.toLowerCase().includes("flash"));
+
+                    availableModels.sort((a, b) => {
+                        const aIsExp = a.includes("preview") || a.includes("exp");
+                        const bIsExp = b.includes("preview") || b.includes("exp");
+                        if (aIsExp && !bIsExp) return 1;
+                        if (!aIsExp && bIsExp) return -1;
+                        return b.localeCompare(a, undefined, { numeric: true });
+                    });
+
+                    geminiModelCandidates = [...new Set([...availableModels, ...fallbackChain])];
+                } else {
+                    geminiModelCandidates = fallbackChain;
+                }
+            } catch (err) {
+                console.warn("[Gemini API] Dynamic model lookup failed, utilizing default fallback chain:", err);
+                geminiModelCandidates = fallbackChain;
+            }
+
+            return geminiModelCandidates;
+        }
+
+        async function requestGeminiJson(apiKey, systemInstruction, userContent) {
+            const models = await resolveGeminiModelCandidates(apiKey);
+            let lastError = null;
+
+            const requestBody = {
+                contents: [{ role: "user", parts: [{ text: `${userContent}\nReturn valid JSON strictly matching the requested format.` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: { 
+                    responseMimeType: "application/json", 
+                    temperature: 0.2,
+                    maxOutputTokens: 950
+                }
+            };
+
+            for (let mIdx = 0; mIdx < models.length; mIdx++) {
+                const currentModel = models[mIdx];
+                const cleanModel = currentModel.startsWith("models/") ? currentModel : `models/${currentModel}`;
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        const response = await fetch(endpoint, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(requestBody)
+                        });
+
+                        const responseData = await response.json();
+
+                        if (response.ok) {
+                            const rawJsonText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (!rawJsonText) throw new Error("Gemini returned an empty JSON response.");
+                            
+                            if (mIdx > 0) {
+                                geminiModelCandidates.splice(mIdx, 1);
+                                geminiModelCandidates.unshift(currentModel);
+                            }
+
+                            // Clean any potential markdown code blocks before parsing
+                            const sanitizedJson = rawJsonText
+                                .replace(/^```json\s*/i, "")
+                                .replace(/^```\s*/i, "")
+                                .replace(/\s*```$/i, "")
+                                .trim();
+
+                            return JSON.parse(sanitizedJson);
+                        }
+
+                        const errorMsg = responseData.error?.message || `HTTP ${response.status}`;
+                        lastError = new Error(errorMsg);
+
+                        const isHighDemand = 
+                            response.status === 503 || 
+                            response.status === 429 || 
+                            /high demand|overloaded|resource_exhausted|unavailable/i.test(errorMsg);
+
+                        if (isHighDemand) {
+                            console.warn(`[Gemini Fallback] Model '${currentModel}' is under high demand (${errorMsg}). Switching to next fallback model...`);
+                            if (mIdx < models.length - 1) {
+                                showToast(`High demand on ${currentModel}. Automatically switching to backup model...`, "warning");
+                            }
+                            break;
+                        }
+
+                        throw lastError;
+
+                    } catch (err) {
+                        lastError = err;
+                        if (!/high demand|overloaded|resource_exhausted|unavailable|503|429/i.test(err.message)) {
+                            throw err;
+                        }
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            throw lastError || new Error("All Gemini models in fallback chain are currently experiencing high demand. Please try again shortly.");
+        }
+
+        async function fetchExternalDiscoveryTracks(apiKey, { goalText, budgetMins, preferredTopics, excludedTopics, existingIds }) {
+            const systemPrompt = `You are the Goal Mode AI Music Discovery Engine for SiriusXM Pandora.
+The listener has requested music based on a specific prompt, franchise, soundtrack, or artist: "${goalText}".
+
+Your job is to identify REAL, authentic, commercially released songs, openings, endings, character songs, or compositions that 100% strictly belong to this prompt.
+
+STRICT MANDATORY RULES:
+1. FRANCHISE & SPECIFIC CANON INTEGRITY: If the listener specifies a franchise, anime series, video game, soundtrack, or specific artist (e.g. "Monogatari series", "Persona 5", "NieR:Automata", "Studio Ghibli", "Daft Punk", "Danse Macabre"):
+   EVERY track MUST be an official, authentic song strictly from that exact franchise, series, or artist (for Monogatari, provide canonical tracks such as "Renai Circulation" by Kana Hanazawa, "Kimi no Shiranai Monogatari" by supercell, "Platinum Disco" by Yuka Iguchi, "Staple Stable" by Chiwa Saito, "Mousou Express" by Kana Hanazawa, "Sugar Sweet Nightmare" by Yui Horie, "Marshmallow Justice" by Eri Kitamura, "Orange Mint", etc.).
+   NEVER return unrelated generic pop, rock, or songs from different franchises.
+2. ZERO OFF-TOPIC TRACKS: Do NOT pad with unrelated music. Every single item must be 100% genuine and relevant to "${goalText}".
+3. STRICT EXCLUSIONS: Under NO circumstances include any artist, title, or genre matching EXCLUDED TOPICS: ${JSON.stringify(excludedTopics)}.
+4. REAL DURATIONS: Provide realistic durations (typically 3 to 5 minutes each).
+5. TARGET DURATION BUDGET: Return enough authentic tracks to reach approximately ${budgetMins} minutes without exceeding it (typically ${Math.max(3, Math.floor(budgetMins / 4))} tracks).
+
+Return ONLY a JSON object matching this schema:
+{
+  "tracks": [
+    {
+      "title": "Exact Song Title",
+      "artist": "Exact Artist / Vocalist / Composer",
+      "duration_minutes": 4,
+      "tags": ["franchise or genre tags"],
+      "reason": "Exact explanation of how this song belongs to the requested series or prompt"
+    }
+  ]
+}`;
+
+            const userPrompt = `
+LISTENER REQUEST:
+Goal Text: "${goalText}"
+Target Duration: ${budgetMins} minutes
+Preferred Topics: ${JSON.stringify(preferredTopics)}
+Explicit Excluded Topics: ${JSON.stringify(excludedTopics)}
+Previously Recommended / Existing IDs to avoid: ${JSON.stringify((existingIds || []).slice(0, 50))}
+`;
+
+            try {
+                const result = await requestGeminiJson(apiKey, systemPrompt, userPrompt);
+                if (!result.tracks || !Array.isArray(result.tracks)) return [];
+                
+                const cachedCovers = JSON.parse(sessionStorage.getItem("goalModeVerifiedCovers") || "{}");
+                
+                return result.tracks.map(track => {
+                    const id = `discovered:${normalizeSongKey(track.artist + " " + track.title)}`;
+                    const durationMins = Math.min(25, Math.max(1, parseInt(track.duration_minutes) || 4));
+                    const cacheKey = `${track.artist}:${track.title}`.toLowerCase();
+                    const cover = cachedCovers[cacheKey] || `https://placehold.co/120x120/1e293b/a855f7?text=Prompt+Match`;
+
+                    return {
+                        id: id,
+                        title: track.title,
+                        artist: track.artist,
+                        category: "Music",
+                        duration: durationMins,
+                        durationSeconds: durationMins * 60,
+                        cover: cover,
+                        tags: ["outside-discovery", "prompt-curated", ...(track.tags || [])],
+                        reason: track.reason,
+                        isDiscoveredMatch: true
+                    };
+                });
+            } catch (err) {
+                console.error("Failed to query external discovery tracks:", err);
+                return [];
+            }
+        }
+
+        async function fetchBudgetFillerTracks(apiKey, { goalText, remainingBudget, totalBudget, preferredTopics, excludedTopics, existingIds, currentTracks }) {
+            const systemPrompt = `You are the Goal Mode AI Duration & Budget Engine for SiriusXM Pandora.
+The listener's current audio queue has not reached their requested time budget of ${totalBudget} minutes.
+Your task is to curate additional high-quality, authentic tracks to fill the remaining ${remainingBudget} minutes of listening time without exceeding it.
+
+STRICT MANDATORY RULES:
+1. STRICT THEME & FRANCHISE CONSISTENCY: Every single track MUST directly and specifically belong to the listener's prompt: "${goalText}". If the goal mentions a specific franchise, anime, artist, or series (e.g., Monogatari, Ghibli, Zelda, classical), ALL filler tracks MUST strictly come from that exact franchise, series, or style. Absolutely NO random or generic filler songs from outside this theme.
+2. Under NO circumstances select any artist, track, or genre matching EXCLUDED TOPICS: ${JSON.stringify(excludedTopics)}.
+3. Realistic individual track durations (typically 3 to 5 minutes each).
+4. TARGET SUM OF DURATIONS: The sum of durations of your selected filler tracks should be as close to ${remainingBudget} minutes as possible, and MUST NOT exceed ${remainingBudget} minutes.
+5. Do NOT repeat any tracks already in the playlist, queue, or candidate pool: ${JSON.stringify((existingIds || []).slice(0, 50))}.
+
+Return ONLY a JSON object matching this schema:
+{
+  "tracks": [
+    {
+      "title": "Exact Song/Piece Title",
+      "artist": "Exact Artist or Composer Name",
+      "duration_minutes": 4,
+      "tags": ["genre", "style"],
+      "reason": "1-sentence reason why this authentic track belongs to the requested prompt and rounds out the duration"
+    }
+  ]
+}`;
+
+            const userPrompt = `
+GOAL: "${goalText}"
+PREFERRED TOPICS: ${JSON.stringify(preferredTopics)}
+EXCLUDED TOPICS: ${JSON.stringify(excludedTopics)}
+REMAINING TIME BUDGET TO FILL: ${remainingBudget} minutes (Total Target: ${totalBudget} minutes)
+CURRENT QUEUE PREVIEWS: ${JSON.stringify((currentTracks || []).slice(0, 10))}
+`;
+
+            try {
+                const result = await requestGeminiJson(apiKey, systemPrompt, userPrompt);
+                if (!result.tracks || !Array.isArray(result.tracks)) return [];
+                
+                const cachedCovers = JSON.parse(sessionStorage.getItem("goalModeVerifiedCovers") || "{}");
+                let accumulatedMinutes = 0;
+                const fillerTracks = [];
+
+                for (const track of result.tracks) {
+                    const dur = Math.min(20, Math.max(1, parseInt(track.duration_minutes) || 4));
+                    if (accumulatedMinutes + dur > remainingBudget && fillerTracks.length > 0) continue;
+                    accumulatedMinutes += dur;
+
+                    const id = `filler:${normalizeSongKey(track.artist + " " + track.title)}`;
+                    const cacheKey = `${track.artist}:${track.title}`.toLowerCase();
+                    const cover = cachedCovers[cacheKey] || `https://placehold.co/120x120/1e293b/06b6d4?text=Budget+Fill`;
+
+                    fillerTracks.push({
+                        id: id,
+                        title: track.title,
+                        artist: track.artist,
+                        category: "Music",
+                        duration: dur,
+                        durationSeconds: dur * 60,
+                        cover: cover,
+                        tags: ["budget-filler", "prompt-curated", ...(track.tags || [])],
+                        reason: track.reason,
+                        isBudgetFiller: true
+                    });
+                }
+                return fillerTracks;
+            } catch (err) {
+                console.error("Failed to query budget filler tracks:", err);
+                return [];
+            }
+        }
+
+        async function loadMoreTracksForPrompt() {
+            const apiKey = document.getElementById("apiKeyInput").value.trim();
+            const goalText = document.getElementById("goalTextInput").value.trim();
+            const budgetMins = parseInt(document.getElementById("budgetInput").value) || 30;
+            const explicitExclusions = document.getElementById("exclusionsInput").value.trim();
+
+            if (!apiKey) {
+                showToast("Please enter your Gemini API Key first.", "warning");
+                document.getElementById("apiKeyInput").focus();
+                return;
+            }
+            if (!goalText) {
+                showToast("Please enter a goal or prompt description first.", "warning");
+                document.getElementById("goalTextInput").focus();
+                return;
+            }
+
+            showToast(`Loading authentic tracks for "${goalText}" into candidate catalog...`, "info");
+            const discovered = await fetchExternalDiscoveryTracks(apiKey, {
+                goalText,
+                budgetMins,
+                preferredTopics: [goalText],
+                excludedTopics: explicitExclusions ? explicitExclusions.split(",").map(t => t.trim()) : [],
+                existingIds: CATALOG_ITEMS.map(c => c.id)
+            });
+
+            if (discovered && discovered.length) {
+                discovered.forEach(t => {
+                    if (!CATALOG_ITEMS.some(c => c.id === t.id)) {
+                        CATALOG_ITEMS.unshift(t);
+                    }
+                });
+                document.getElementById("catalogStatus").textContent = `${CATALOG_ITEMS.length} candidate songs (${discovered.length} loaded from prompt)`;
+                renderCatalogTable();
+                const lastfmApiKey = document.getElementById("lastfmApiKeyInput").value.trim();
+                enrichCandidateCoversProgressively(lastfmApiKey);
+                showToast(`Loaded ${discovered.length} songs for "${goalText}" into candidate catalog!`, "success");
+            } else {
+                showToast("No new tracks found for that prompt.", "warning");
+            }
+        }
+
+        async function loadYouTubePlaylist() {
+            const tokenOrKey = document.getElementById("youtubeTokenInput").value.trim();
+            const rawPlaylistId = document.getElementById("youtubePlaylistIdInput").value.trim();
+            const playlistId = extractPlaylistId(rawPlaylistId);
+            const geminiApiKey = document.getElementById("apiKeyInput").value.trim();
+            const lastfmApiKey = document.getElementById("lastfmApiKeyInput").value.trim();
+            const status = document.getElementById("youtubeAuthStatus");
+
+            if (!tokenOrKey || !playlistId) {
+                showToast("Enter both a YouTube API Key / Bearer token and Playlist ID or URL.", "warning");
+                return;
+            }
+            if (!geminiApiKey) {
+                showToast("Enter your Gemini API key before loading playlist recommendations.", "warning");
+                return;
+            }
+
+            const button = document.getElementById("loadYoutubeBtn");
+            button.disabled = true;
+            button.classList.add("opacity-50", "cursor-not-allowed");
+            status.textContent = "Connecting to YouTube API and fetching playlist items...";
+            status.className = "text-[10px] text-blue-400 mt-1";
+
+            try {
+                const baseItemUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(playlistId)}&maxResults=50`;
+                const itemConfig = getYouTubeRequestConfig(tokenOrKey, baseItemUrl);
+                const itemResponse = await fetch(itemConfig.url, { headers: itemConfig.headers });
+                const itemData = await itemResponse.json();
+
+                if (!itemResponse.ok) {
+                    throw new Error(itemData.error?.message || `YouTube API HTTP ${itemResponse.status}`);
+                }
+
+                const videoIds = (itemData.items || []).map(item => item.contentDetails?.videoId).filter(Boolean);
+                if (!videoIds.length) throw new Error("No videos found in that playlist.");
+
+                const baseVideoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoIds.join(",")}`;
+                const videoConfig = getYouTubeRequestConfig(tokenOrKey, baseVideoUrl);
+                const videoResponse = await fetch(videoConfig.url, { headers: videoConfig.headers });
+                const videoData = await videoResponse.json();
+
+                if (!videoResponse.ok) {
+                    throw new Error(videoData.error?.message || `YouTube API HTTP ${videoResponse.status}`);
+                }
+
+                const playlistVideos = videoData.items || [];
+                PLAYLIST_ITEMS = playlistVideos.map(video => {
+                    const thumbs = video.snippet?.thumbnails;
+                    const cover = thumbs?.standard?.url || thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || `https://placehold.co/120x120/1e293b/64748b?text=YouTube`;
+                    return {
+                        id: video.id,
+                        title: video.snippet.title,
+                        artist: video.snippet.channelTitle || "Unknown artist",
+                        duration: parseDuration(video.contentDetails?.duration || "PT0S"),
+                        durationSeconds: parseDurationSeconds(video.contentDetails?.duration || "PT0S"),
+                        cover: cover,
+                        tags: ["already-on-playlist", ...(video.snippet.tags || [])]
+                    };
+                });
+
+                renderPlaylistHistory();
+                playlistVideoIds = new Set(playlistVideos.map(v => v.id));
+                playlistPreferenceSummary = playlistVideos.map(v => v.snippet.title).slice(0, 20).join(" | ");
+
+                status.textContent = "Analyzing musical taste signals with Gemini & Last.fm...";
+                const playlistContext = playlistVideos.slice(0, 25).map((v, index) => ({
+                    index,
+                    title: v.snippet.title,
+                    artistOrChannel: v.snippet.channelTitle
+                }));
+
+                const searchPlan = await requestGeminiJson(
+                    geminiApiKey,
+                    "You identify clean music metadata. For each item, infer artist and track title. Return JSON: {\"tracks\":[{\"artist\":\"...\",\"track\":\"...\"}]}.",
+                    `Infer artist and track for each item:\n${JSON.stringify(playlistContext)}`
+                );
+
+                const trackSeeds = Array.isArray(searchPlan.tracks) && searchPlan.tracks.length 
+                    ? searchPlan.tracks 
+                    : playlistVideos.map(v => ({ artist: v.snippet.channelTitle || "", track: v.snippet.title }));
+
+                const candidateMap = new Map();
+                const heardSongKeys = new Set(trackSeeds.map(s => normalizeSongKey(`${s.artist} ${s.track}`)));
+
+                if (lastfmApiKey) {
+                    const seedBatches = trackSeeds.slice(0, 8);
+                    const results = await Promise.allSettled(seedBatches.map(seed => {
+                        const params = new URLSearchParams({
+                            method: "track.getSimilar",
+                            api_key: lastfmApiKey,
+                            artist: seed.artist || "",
+                            track: seed.track || "",
+                            limit: "15",
+                            format: "json"
+                        });
+                        return fetch(`https://ws.audioscrobbler.com/2.0/?${params}`).then(r => r.json());
+                    }));
+
+                    for (const res of results) {
+                        if (res.status === "fulfilled" && res.value?.similartracks?.track) {
+                            for (const match of res.value.similartracks.track) {
+                                const artist = match.artist?.name || "Unknown artist";
+                                const title = match.name || "";
+                                const songKey = normalizeSongKey(`${artist} ${title}`);
+                                const id = `lastfm:${artist}:${title}`.toLowerCase();
+                                if (title && !heardSongKeys.has(songKey) && !candidateMap.has(id)) {
+                                    candidateMap.set(id, {
+                                        id,
+                                        title,
+                                        artist,
+                                        category: "Music",
+                                        duration: 4,
+                                        durationSeconds: 240,
+                                        cover: extractLastfmImage(match.image) || `https://placehold.co/80x80/1e293b/64748b?text=Music`,
+                                        tags: ["last.fm", "similar-music"]
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If candidate pool is sparse or no Last.fm key, convert playlist seeds directly
+                if (candidateMap.size < 20) {
+                    trackSeeds.forEach(seed => {
+                        const id = `seed:${normalizeSongKey(seed.artist + " " + seed.track)}`;
+                        if (!candidateMap.has(id)) {
+                            candidateMap.set(id, {
+                                id,
+                                title: seed.track,
+                                artist: seed.artist,
+                                category: "Music",
+                                duration: 4,
+                                durationSeconds: 240,
+                                cover: `https://placehold.co/80x80/1e293b/64748b?text=Music`,
+                                tags: ["playlist-seed", "taste-signal"]
+                            });
+                        }
+                    });
+                }
+
+                CATALOG_ITEMS = [...candidateMap.values()].slice(0, 100);
+                document.getElementById("catalogStatus").textContent = `${CATALOG_ITEMS.length} candidate songs loaded`;
+                status.textContent = "Playlist loaded successfully! Candidate recommendations ready.";
+                status.className = "text-[10px] text-emerald-400 mt-1";
+                renderCatalogTable();
+                showToast(`Loaded ${playlistVideos.length} playlist songs and ${CATALOG_ITEMS.length} candidates!`, "success");
+
+                enrichCandidateCoversProgressively(lastfmApiKey);
+
+            } catch (err) {
+                console.error(err);
+                status.textContent = `Error: ${err.message}`;
+                status.className = "text-[10px] text-red-400 mt-1";
+                showToast(`Failed to load playlist: ${err.message}`, "error");
+            } finally {
+                button.disabled = false;
+                button.classList.remove("opacity-50", "cursor-not-allowed");
+            }
+        }
+
+        async function generateGoalQueue() {
+            const apiKey = document.getElementById("apiKeyInput").value.trim();
+            const goalText = document.getElementById("goalTextInput").value.trim();
+            const budgetMins = parseInt(document.getElementById("budgetInput").value) || 30;
+            const explicitExclusions = document.getElementById("exclusionsInput").value.trim();
+            const includeHistory = document.getElementById("includeHistoryCheck").checked;
+            const previouslyRecommendedIds = getPreviouslyRecommendedIds();
+
+            if (!apiKey) {
+                showToast("Please enter a valid Gemini API Key.", "warning");
+                document.getElementById("apiKeyInput").focus();
+                return;
+            }
+
+            if (!goalText) {
+                showToast("Please enter a listening goal description.", "warning");
+                document.getElementById("goalTextInput").focus();
+                return;
+            }
+
+            setLoading(true);
+
+            // Determine operation mode: Playlist-grounded vs Direct Prompt Mode
+            const isPlaylistGrounded = CATALOG_ITEMS.length > 0;
+
+            if (!isPlaylistGrounded) {
+                document.getElementById("loadingStateTitle").textContent = "Direct Prompt Mode: Curating authentic tracks for your goal...";
+                document.getElementById("loadingStateSubtitle").textContent = "Enforcing negative exclusions & duration budget";
+            } else {
+                document.getElementById("loadingStateTitle").textContent = "Parsing goal & evaluating candidate pool...";
+                document.getElementById("loadingStateSubtitle").textContent = "Enforcing budget constraints & topic exclusions";
+            }
+
+            const exclusionTokens = explicitExclusions.toLowerCase().split(",").map(t => t.trim()).filter(Boolean);
+            let eligibleCandidates = CATALOG_ITEMS.filter(item => {
+                if (!exclusionTokens.length) return true;
+                const searchText = `${item.title} ${item.artist} ${item.tags.join(" ")}`.toLowerCase();
+                return !exclusionTokens.some(ex => searchText.includes(ex));
+            });
+
+            eligibleCandidates = eligibleCandidates.slice(0, 40);
+
+            const compactCatalogPrompt = eligibleCandidates.length 
+                ? eligibleCandidates.map(c => `ID: "${c.id}" | ${c.title} - ${c.artist} | ${c.duration}m | Tags: ${c.tags.slice(0, 3).join(", ")}`).join("\n")
+                : "None available (Direct Prompt Mode active)";
+
+            const chatInsightsText = CHAT_TASTE_INSIGHTS.length 
+                ? `\nLEARNED PREFERENCES FROM CONVERSATIONAL AI CHAT:\n${CHAT_TASTE_INSIGHTS.map(t => `- ${t}`).join("\n")}`
+                : "None recorded yet";
+
+            const systemPrompt = `You are the Goal Mode AI Recommendation Engine for SiriusXM Pandora.
+Your job is to parse listener goals, evaluate candidate suitability from the candidate catalog (if available), and assemble the optimal audio queue.
+
+CRITICAL 100% RELEVANCE & ZERO IRRELEVANT FILLER RULES:
+1. 100% THEMATIC RELEVANCE ONLY: Only select candidate items if they GENUINELY, DIRECTLY, and AUTHENTICALLY match the listener's specific goal (e.g. if the user asks for "songs from the monogatari series", ONLY select songs that actually belong to the Monogatari series; NEVER select unrelated indie, pop, or rock songs).
+2. CONVERSATIONAL TASTE INTEGRATION: Actively honor and incorporate the listener's learned preferences and critiques discovered in recent AI Taste Chat discussions.
+3. ZERO UNRELATED BACKFILLING: If the candidate catalog only has 1 or 2 songs that genuinely match, select ONLY those matching songs. NEVER force-fit unrelated catalog songs just to fill the budget!
+4. PROMPT-DRIVEN EXPANSION: If no candidates exist, or if the user's prompt requests a specific franchise, soundtrack, artist, or style that is NOT fully populated in the candidate catalog, or if qualified candidates cannot fill at least 80% of the ${budgetMins}-minute budget, set "needs_external_discovery": true and "status": "needs_prompt_expansion".
+5. STRICT EXCLUSIONS: Under no circumstances select any item matching EXPLICIT EXCLUSIONS.
+6. GOAL PRIORITY: Override historical preferences when they conflict with the user's goal.
+
+Return valid JSON strictly matching schema:
+{
+  "normalized_goal": "1-sentence summary of the parsed user goal",
+  "specific_franchise_or_artist": "Name of franchise/artist/theme if specific, else null",
+  "preferred_topics": ["array", "of", "preferred", "topics"],
+  "excluded_topics": ["array", "of", "explicitly", "excluded", "topics"],
+  "budget_minutes": ${budgetMins},
+  "needs_external_discovery": true | false,
+  "ai_comment": "Brief comment explaining candidate evaluation or what prompt-specific songs need to be loaded",
+  "recommendations": [{"content_id": "EXACT_ID", "reason": "1-sentence reason why this strictly matches the goal"}],
+  "status": "ok" | "outside_discovery" | "needs_prompt_expansion" | "clarify" | "no_match"
+}`;
+
+            const userPrompt = `
+LISTENER INPUT:
+Goal: "${goalText}"
+Budget: ${budgetMins} minutes
+Explicit Exclusions: "${explicitExclusions}"
+Listener Preference History: ${includeHistory ? "Heavy listener of Fiction podcasts (80% past history)" : "None"}
+Previously Recommended IDs (AVOID): ${JSON.stringify(previouslyRecommendedIds.slice(0, 30))}
+Playlist Style Summary: ${playlistPreferenceSummary || "None (Direct prompt curation)"}
+${chatInsightsText}
+
+CANDIDATE POOL (Compact Format):
+${compactCatalogPrompt}
+`;
+
+            try {
+                let parsedData = await requestGeminiJson(apiKey, systemPrompt, userPrompt);
+                
+                let currentRecs = parsedData.recommendations || [];
+                let currentDuration = currentRecs.reduce((sum, rec) => {
+                    const item = CATALOG_ITEMS.find(c => c.id === rec.content_id);
+                    return sum + (item ? (item.duration || 4) : 4);
+                }, 0);
+
+                const targetMinDuration = Math.floor(budgetMins * 0.8);
+
+                const needsPromptExpansion = 
+                    !isPlaylistGrounded ||
+                    parsedData.status === "outside_discovery" ||
+                    parsedData.status === "needs_prompt_expansion" ||
+                    parsedData.status === "no_match" ||
+                    parsedData.needs_external_discovery === true ||
+                    (!currentRecs.length && parsedData.status === "ok") ||
+                    (currentDuration < targetMinDuration && parsedData.status !== "clarify");
+
+                if (needsPromptExpansion) {
+                    const remainingNeeded = Math.max(budgetMins - currentDuration, 8);
+                    showToast(`Curating authentic tracks for "${parsedData.normalized_goal || goalText}"...`, "info");
+                    
+                    const promptTracks = await fetchExternalDiscoveryTracks(apiKey, {
+                        goalText,
+                        budgetMins: remainingNeeded,
+                        preferredTopics: parsedData.preferred_topics || [goalText],
+                        excludedTopics: parsedData.excluded_topics || [],
+                        existingIds: [...previouslyRecommendedIds, ...currentRecs.map(r => r.content_id)]
+                    });
+
+                    if (promptTracks.length) {
+                        promptTracks.forEach(pt => {
+                            if (!CATALOG_ITEMS.some(c => c.id === pt.id)) {
+                                CATALOG_ITEMS.unshift(pt);
+                            }
+                            if (currentDuration + pt.duration <= budgetMins + 2) {
+                                currentRecs.push({
+                                    content_id: pt.id,
+                                    reason: pt.reason || `Directly matched to "${goalText}".`
+                                });
+                                currentDuration += pt.duration;
+                            }
+                        });
+
+                        document.getElementById("catalogStatus").textContent = `${CATALOG_ITEMS.length} candidate songs (${promptTracks.length} loaded from prompt)`;
+                        renderCatalogTable();
+
+                        parsedData.status = "prompt_expanded";
+                        parsedData.recommendations = currentRecs;
+                        parsedData.ai_comment = `Curated ${promptTracks.length} tracks specifically matching "${goalText}".`;
+                        
+                        const lastfmApiKey = document.getElementById("lastfmApiKeyInput").value.trim();
+                        enrichCandidateCoversProgressively(lastfmApiKey);
+                    }
+                }
+
+                // Check for duration shortfall
+                const remainingBudget = budgetMins - currentDuration;
+                if (currentDuration < targetMinDuration && remainingBudget >= 3 && parsedData.status !== "clarify" && parsedData.status !== "no_match") {
+                    showToast(`Queue is ${currentDuration}m. Curating filler tracks for your ${budgetMins}m budget...`, "info");
+                    
+                    const currentTrackNames = currentRecs.map(r => {
+                        const item = CATALOG_ITEMS.find(c => c.id === r.content_id);
+                        return item ? `${item.artist} - ${item.title}` : r.content_id;
+                    });
+
+                    const fillerTracks = await fetchBudgetFillerTracks(apiKey, {
+                        goalText,
+                        remainingBudget,
+                        totalBudget: budgetMins,
+                        preferredTopics: parsedData.preferred_topics || [goalText],
+                        excludedTopics: parsedData.excluded_topics || [],
+                        existingIds: [...previouslyRecommendedIds, ...currentRecs.map(r => r.content_id)],
+                        currentTracks: currentTrackNames
+                    });
+
+                    if (fillerTracks && fillerTracks.length > 0) {
+                        let addedFillerDuration = 0;
+                        fillerTracks.forEach(ft => {
+                            if (!CATALOG_ITEMS.some(c => c.id === ft.id)) {
+                                CATALOG_ITEMS.unshift(ft);
+                            }
+                            parsedData.recommendations.push({
+                                content_id: ft.id,
+                                reason: ft.reason || `Curated to fill the ${budgetMins}-minute duration budget.`
+                            });
+                            addedFillerDuration += ft.duration;
+                        });
+
+                        document.getElementById("catalogStatus").textContent = `${CATALOG_ITEMS.length} candidate songs (${fillerTracks.length} budget-filler tracks added)`;
+                        renderCatalogTable();
+
+                        const fillerComment = `Added ${fillerTracks.length} supplemental tracks (+${addedFillerDuration}m) to fully utilize your ${budgetMins}-minute duration goal.`;
+                        parsedData.ai_comment = parsedData.ai_comment ? `${parsedData.ai_comment} ${fillerComment}` : fillerComment;
+
+                        const lastfmApiKey = document.getElementById("lastfmApiKeyInput").value.trim();
+                        enrichCandidateCoversProgressively(lastfmApiKey);
+                        showToast(`Added ${fillerTracks.length} tracks to fill queue (${currentDuration + addedFillerDuration}/${budgetMins}m)`, "success");
+                    }
+                }
+
+                renderResults(parsedData, budgetMins, includeHistory);
+                showToast("Goal Queue successfully generated!", "success");
+
+            } catch (err) {
+                console.error("Queue generation error:", err);
+                renderResults({
+                    normalized_goal: goalText,
+                    preferred_topics: [],
+                    excluded_topics: [],
+                    recommendations: [],
+                    status: "no_match",
+                    ai_comment: `Unable to complete queue generation: ${err.message}`
+                }, budgetMins, includeHistory);
+                showToast(`Generation failed: ${err.message}`, "error");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function renderResults(data, requestedBudget, includeHistory) {
+            document.getElementById("emptyState").classList.add("hidden");
+            document.getElementById("outputContent").classList.remove("hidden");
+
+            // Status Badge
+            const statusTag = document.getElementById("statusTag");
+            const status = data.status || "ok";
+            statusTag.textContent = status.replace("_", " ").toUpperCase();
+            
+            if (status === "ok") {
+                statusTag.className = "bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 text-xs px-2.5 py-1 rounded-full font-mono";
+            } else if (status === "prompt_expanded" || status === "discovered_match" || status === "outside_discovery") {
+                statusTag.className = "bg-purple-900/60 text-purple-300 border border-purple-700/50 text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5";
+                statusTag.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-purple-400 text-[10px]"></i> PROMPT MATCHED`;
+            } else if (status === "popular_match") {
+                statusTag.className = "bg-amber-900/60 text-amber-300 border border-amber-700/50 text-xs px-2.5 py-1 rounded-full font-mono flex items-center gap-1.5";
+                statusTag.innerHTML = `<i class="fa-solid fa-fire text-amber-400 text-[10px]"></i> POPULAR MATCH`;
+            } else if (status === "clarify") {
+                statusTag.className = "bg-purple-900/60 text-purple-300 border border-purple-700/50 text-xs px-2.5 py-1 rounded-full font-mono";
+            } else {
+                statusTag.className = "bg-red-900/60 text-red-300 border border-red-700/50 text-xs px-2.5 py-1 rounded-full font-mono";
+            }
+
+            // Extracted Summary
+            document.getElementById("resNormalizedGoal").textContent = data.normalized_goal || "N/A";
+            document.getElementById("resAiComment").textContent = data.ai_comment || "No comment provided.";
+
+            const prefEl = document.getElementById("resPreferredTopics");
+            prefEl.innerHTML = (data.preferred_topics || []).map(t => 
+                `<span class="bg-blue-900/50 text-blue-300 border border-blue-700/40 px-1.5 py-0.5 rounded text-[10px]">${t}</span>`
+            ).join("") || "<span class='text-slate-500'>None</span>";
+
+            const exclEl = document.getElementById("resExcludedTopics");
+            exclEl.innerHTML = (data.excluded_topics || []).map(t => 
+                `<span class="bg-red-900/50 text-red-300 border border-red-700/40 px-1.5 py-0.5 rounded text-[10px]">${t}</span>`
+            ).join("") || "<span class='text-slate-500'>None</span>";
+
+            // Process recommendations
+            const queueList = document.getElementById("queueList");
+            let totalDuration = 0;
+            let containsExcludedItem = false;
+            const recommendations = data.recommendations || [];
+            rememberRecommendedIds(recommendations);
+            const lastfmKey = document.getElementById("lastfmApiKeyInput").value.trim();
+
+            if (!recommendations.length) {
+                queueList.innerHTML = `<div class="p-4 bg-slate-900/70 rounded-lg border border-slate-800 text-xs text-slate-400 italic text-center">No audio recommendations match this goal and exclusion set.</div>`;
+            } else {
+                queueList.innerHTML = recommendations.map((rec, index) => {
+                    const item = CATALOG_ITEMS.find(c => c.id === rec.content_id) || {
+                        title: "Curated Selection",
+                        artist: "Featured Artist",
+                        category: "Music",
+                        duration: 4,
+                        cover: `https://placehold.co/120x120/1e293b/64748b?text=Music`,
+                        tags: []
+                    };
+                    totalDuration += item.duration;
+
+                    const isViolation = (data.excluded_topics || []).some(ex => 
+                        (item.tags || []).some(t => t.toLowerCase().includes(ex.toLowerCase())) ||
+                        (item.title || "").toLowerCase().includes(ex.toLowerCase())
+                    );
+                    if (isViolation) containsExcludedItem = true;
+
+                    const isDiscovered = item.tags.includes("outside-discovery") || item.tags.includes("prompt-curated") || item.isDiscoveredMatch;
+                    const isPopular = item.tags.includes("popular-track") || item.isPopularMatch;
+                    const isFiller = item.tags.includes("budget-filler") || item.isBudgetFiller;
+                    const imgElementId = `queue-cover-${index}`;
+
+                    return `
+                        <div class="bg-slate-900/90 border ${isViolation ? 'border-red-500' : 'border-slate-700/80'} rounded-lg p-3 space-y-2 shadow-sm">
+                            <div class="flex items-center space-x-3">
+                                <img id="${imgElementId}"
+                                     src="${item.cover || `https://placehold.co/80x80/1e293b/64748b?text=Music`}" 
+                                     alt="${item.title}" 
+                                     class="w-12 h-12 rounded object-cover border border-slate-700 bg-slate-800 flex-shrink-0 shadow"
+                                     onerror="this.src='https://placehold.co/80x80/1e293b/64748b?text=Music'">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-xs font-semibold text-white truncate">${item.title}</h4>
+                                        <span class="text-[11px] font-mono font-medium text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                                            ${item.duration}m
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 mt-0.5">
+                                        <span class="text-[11px] text-emerald-300 truncate">${item.artist}</span>
+                                        ${isDiscovered ? '<span class="bg-purple-900/60 text-purple-300 border border-purple-700/50 text-[9px] px-1.5 py-0.2 rounded font-sans flex items-center gap-1"><i class="fa-solid fa-sparkles text-purple-400 text-[8px]"></i>Prompt Match</span>' : ''}
+                                        ${isFiller ? '<span class="bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 text-[9px] px-1.5 py-0.2 rounded font-sans flex items-center gap-1"><i class="fa-solid fa-stopwatch text-cyan-400 text-[8px]"></i>Budget Fill</span>' : ''}
+                                        ${isPopular && !isDiscovered && !isFiller ? '<span class="bg-amber-900/60 text-amber-300 border border-amber-700/50 text-[9px] px-1.5 py-0.2 rounded font-sans flex items-center gap-1"><i class="fa-solid fa-fire text-amber-400 text-[8px]"></i>Popular</span>' : ''}
+                                        <span class="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.2 rounded font-mono">${item.id}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-300 bg-slate-800/50 p-2 rounded border border-slate-800 text-[11px] leading-relaxed">
+                                <i class="fa-solid fa-quote-left text-[9px] text-blue-400 mr-1.5"></i>${rec.reason}
+                            </p>
+                        </div>
+                    `;
+                }).join("");
+
+                recommendations.forEach((rec, idx) => {
+                    const item = CATALOG_ITEMS.find(c => c.id === rec.content_id);
+                    if (item && (!item.cover || item.cover.includes("placehold.co"))) {
+                        const imgEl = document.getElementById(`queue-cover-${idx}`);
+                        loadCoverAsync(imgEl, item.artist, item.title, lastfmKey);
+                    }
+                });
+            }
+
+            // Metrics
+            const metricDuration = document.getElementById("metricDuration");
+            metricDuration.textContent = `${totalDuration} / ${requestedBudget} m`;
+            metricDuration.className = totalDuration <= requestedBudget ? "font-semibold text-emerald-400 font-mono" : "font-semibold text-red-400 font-mono";
+
+            const metricExclusion = document.getElementById("metricExclusion");
+            if (containsExcludedItem) {
+                metricExclusion.textContent = "Violation Detected";
+                metricExclusion.className = "font-semibold text-red-400";
+            } else {
+                metricExclusion.textContent = "100% Compliant";
+                metricExclusion.className = "font-semibold text-emerald-400";
+            }
+
+            // Raw JSON Output
+            document.getElementById("rawJsonResponse").textContent = JSON.stringify(data, null, 2);
+
+            // Synchronize with AI Taste Chat Tab
+            LAST_RECOMMENDATION_DATA = {
+                normalized_goal: data.normalized_goal || "Custom Goal",
+                preferred_topics: data.preferred_topics || [],
+                excluded_topics: data.excluded_topics || [],
+                budget_minutes: requestedBudget,
+                ai_comment: data.ai_comment || "",
+                recommendations: (data.recommendations || []).map(r => {
+                    const found = CATALOG_ITEMS.find(c => c.id === r.content_id);
+                    return {
+                        id: r.content_id,
+                        title: found ? found.title : "Curated Selection",
+                        artist: found ? found.artist : "Artist",
+                        duration: found ? found.duration : 4,
+                        cover: found ? found.cover : "",
+                        reason: r.reason || ""
+                    };
+                }),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            const chatDot = document.getElementById("chatContextDot");
+            if (chatDot) chatDot.classList.remove("hidden");
+            refreshChatContextDisplay();
+        }
+
+        function setLoading(isLoading) {
+            const btn = document.getElementById("generateBtn");
+            const emptyState = document.getElementById("emptyState");
+            const loadingState = document.getElementById("loadingState");
+            const outputContent = document.getElementById("outputContent");
+
+            if (isLoading) {
+                btn.disabled = true;
+                btn.classList.add("opacity-50", "cursor-not-allowed");
+                emptyState.classList.add("hidden");
+                outputContent.classList.add("hidden");
+                loadingState.classList.remove("hidden");
+            } else {
+                btn.disabled = false;
+                btn.classList.remove("opacity-50", "cursor-not-allowed");
+                loadingState.classList.add("hidden");
+            }
+        }
+
+        // =========================================================================
+        // AI TASTE CHAT & PREFERENCE SYNCHRONIZATION ENGINE
+        // =========================================================================
+
+        function refreshChatContextDisplay() {
+            const goalText = document.getElementById("goalTextInput")?.value.trim();
+            const budget = document.getElementById("budgetInput")?.value || 30;
+            const exclusions = document.getElementById("exclusionsInput")?.value.trim() || "None";
+
+            const ctxGoalEl = document.getElementById("chatContextGoalText");
+            const ctxBudgetEl = document.getElementById("chatContextBudget");
+            const ctxExclEl = document.getElementById("chatContextExclusions");
+            const countBadge = document.getElementById("chatQueueCountBadge");
+            const listContainer = document.getElementById("chatQueueSnapshotList");
+
+            if (ctxGoalEl) ctxGoalEl.textContent = goalText || "None entered yet";
+            if (ctxBudgetEl) ctxBudgetEl.textContent = `${budget}m`;
+            if (ctxExclEl) ctxExclEl.textContent = exclusions;
+
+            if (LAST_RECOMMENDATION_DATA && LAST_RECOMMENDATION_DATA.recommendations?.length) {
+                const recs = LAST_RECOMMENDATION_DATA.recommendations;
+                if (countBadge) countBadge.textContent = `${recs.length} tracks (${LAST_RECOMMENDATION_DATA.timestamp})`;
+                if (listContainer) {
+                    listContainer.innerHTML = recs.map((t, idx) => `
+                        <div class="flex items-center space-x-2 p-1.5 bg-slate-900/80 rounded border border-slate-800 text-[11px]">
+                            <img src="${t.cover || 'https://placehold.co/80x80/1e293b/64748b?text=Music'}" 
+                                 class="w-6 h-6 rounded object-cover border border-slate-700" 
+                                 onerror="this.src='https://placehold.co/80x80/1e293b/64748b?text=Music'">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-slate-200 font-medium truncate">${idx + 1}. ${t.title}</p>
+                                <p class="text-slate-400 text-[10px] truncate">${t.artist} • ${t.duration}m</p>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+            }
+
+            renderLearnedTasteNotes();
+        }
+
+        function renderLearnedTasteNotes() {
+            const container = document.getElementById("learnedTasteNotesContainer");
+            if (!container) return;
+            if (!CHAT_TASTE_INSIGHTS.length) {
+                container.innerHTML = `<span class="text-[10px] text-slate-500 italic p-1">No conversational preferences recorded yet. Tell the AI what you like or dislike!</span>`;
+                return;
+            }
+            container.innerHTML = CHAT_TASTE_INSIGHTS.map((note, idx) => `
+                <span class="inline-flex items-center bg-purple-950/70 text-purple-200 border border-purple-800/60 px-2 py-0.5 rounded text-[10px] font-medium">
+                    <span>${note}</span>
+                    <button type="button" onclick="removeTasteInsight(${idx})" class="ml-1.5 text-purple-400 hover:text-red-400 focus:outline-none">
+                        <i class="fa-solid fa-xmark text-[9px]"></i>
+                    </button>
+                </span>
+            `).join("");
+        }
+
+        function removeTasteInsight(index) {
+            CHAT_TASTE_INSIGHTS.splice(index, 1);
+            renderLearnedTasteNotes();
+            showToast("Preference removed from Goal Mode sync.", "info");
+        }
+
+        function clearChatPreferences() {
+            CHAT_TASTE_INSIGHTS = [];
+            renderLearnedTasteNotes();
+            showToast("Reset learned chat preferences.", "info");
+        }
+
+        function clearChatHistory() {
+            CHAT_HISTORY = [];
+            const container = document.getElementById("chatMessagesContainer");
+            if (container) {
+                container.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] flex-shrink-0 mt-0.5 shadow">
+                            <i class="fa-solid fa-headphones"></i>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-200 max-w-xl space-y-2 shadow-sm">
+                            <p class="leading-relaxed">Chat history cleared. What kind of audio or playlist goals are you planning next?</p>
+                        </div>
+                    </div>
+                `;
+            }
+            showToast("Chat history cleared.", "info");
+        }
+
+        function sendQuickPrompt(promptText) {
+            const input = document.getElementById("chatTextInput");
+            if (input) {
+                input.value = promptText;
+                sendChatMessage();
+            }
+        }
+
+        function appendMessageToFeed(role, text, actionCard = null) {
+            const container = document.getElementById("chatMessagesContainer");
+            if (!container) return;
+
+            const isUser = role === "user";
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+
+            const avatar = isUser
+                ? `<div class="w-7 h-7 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-white text-[11px] flex-shrink-0 mt-0.5 shadow"><i class="fa-solid fa-user"></i></div>`
+                : `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-blue-500 flex items-center justify-center text-white text-[11px] flex-shrink-0 mt-0.5 shadow"><i class="fa-solid fa-sparkles"></i></div>`;
+
+            let actionHtml = "";
+            if (actionCard && actionCard.goal) {
+                actionHtml = `
+                    <div class="mt-3 p-3 bg-purple-950/40 border border-purple-700/60 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-semibold text-purple-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Proposed Goal Settings
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-mono">${actionCard.budget || 30}m Budget</span>
+                        </div>
+                        <p class="text-[11px] text-slate-200 font-medium italic">"${actionCard.goal}"</p>
+                        ${actionCard.exclusions ? `<p class="text-[10px] text-slate-400">Exclusions: <span class="text-red-300 font-mono">${actionCard.exclusions}</span></p>` : ''}
+                        <div class="pt-1.5 flex gap-2">
+                            <button onclick="applyChatSuggestionToRecommender('${encodeURIComponent(actionCard.goal)}', ${actionCard.budget || 30}, '${encodeURIComponent(actionCard.exclusions || '')}', false)" 
+                                class="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-semibold py-1.5 px-2.5 rounded-lg text-[11px] transition flex items-center justify-center gap-1 shadow">
+                                <i class="fa-solid fa-check text-[10px]"></i> Apply to Goal Mode
+                            </button>
+                            <button onclick="applyChatSuggestionToRecommender('${encodeURIComponent(actionCard.goal)}', ${actionCard.budget || 30}, '${encodeURIComponent(actionCard.exclusions || '')}', true)" 
+                                class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-1.5 px-2.5 rounded-lg text-[11px] transition flex items-center justify-center gap-1 shadow">
+                                <i class="fa-solid fa-play text-[9px]"></i> Apply & Generate
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            msgDiv.innerHTML = `
+                ${avatar}
+                <div class="${isUser ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none' : 'bg-slate-900/90 border border-slate-700/80 rounded-2xl rounded-tl-none text-slate-200'} p-3.5 text-xs max-w-xl shadow-sm space-y-1 leading-relaxed">
+                    <p class="whitespace-pre-wrap">${text}</p>
+                    ${actionHtml}
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById("chatTextInput");
+            const userText = input ? input.value.trim() : "";
+            if (!userText) return;
+
+            const apiKey = document.getElementById("apiKeyInput")?.value.trim();
+            if (!apiKey) {
+                showToast("Please enter your Gemini API Key in the left controls first.", "warning");
+                return;
+            }
+
+            appendMessageToFeed("user", userText);
+            input.value = "";
+
+            const typingEl = document.getElementById("chatTypingIndicator");
+            const sendBtn = document.getElementById("chatSendBtn");
+            if (typingEl) typingEl.classList.remove("hidden");
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.classList.add("opacity-50", "cursor-not-allowed");
+            }
+
+            const currentGoal = document.getElementById("goalTextInput")?.value.trim() || "None";
+            const currentBudget = document.getElementById("budgetInput")?.value || 30;
+            const currentExclusions = document.getElementById("exclusionsInput")?.value.trim() || "None";
+            const currentQueueSnapshot = LAST_RECOMMENDATION_DATA?.recommendations || [];
+            const playlistCount = PLAYLIST_ITEMS.length;
+
+            const systemInstruction = `You are the SiriusXM Goal Mode AI Taste Concierge.
+Your purpose is to have an intelligent, musical dialogue with the listener about their audio taste, previous queue recommendations, and listening goals.
+
+CURRENT RECOMMENDER & SESSION CONTEXT:
+- Active Goal: "${currentGoal}"
+- Duration Budget: ${currentBudget} minutes
+- Active Exclusions: "${currentExclusions}"
+- Playlist Loaded: ${playlistCount > 0 ? `Yes (${playlistCount} songs)` : 'No (direct prompt mode)'}
+- Current Active Queue Recommendations: ${JSON.stringify(currentQueueSnapshot.map(t => ({ title: t.title, artist: t.artist, duration: t.duration, reason: t.reason })))}
+- Existing Discovered Taste Notes: ${JSON.stringify(CHAT_TASTE_INSIGHTS)}
+
+MANDATORY RULES:
+1. Be musically knowledgeable, conversational, concise, and helpful.
+2. If the user asks about specific tracks in their queue, reference the actual titles, artists, durations, and curation reasons from the context above.
+3. EXTRACT TASTE INSIGHTS: If the listener shares a like, dislike, favorite artist, subgenre preference, or track critique (e.g. "I love upbeat synth", "Dislike acoustic guitar", "Too repetitive", "Need high energy for running"), identify 1 to 3 concise taste insight strings to be stored in "extracted_taste_insights".
+4. SUGGEST REFINED GOALS: If the listener asks for adjustments or if their feedback warrants a modified Goal Mode prompt, provide a "suggested_recommender_action" with a concrete "goal", "budget" (number), and "exclusions" string. Otherwise set it to null.
+
+Return valid JSON strictly matching this schema:
+{
+  "reply": "Your conversational response to the listener...",
+  "extracted_taste_insights": ["Array of discovered taste or critique notes to remember, or empty array"],
+  "suggested_recommender_action": {
+    "goal": "Refined goal description to load into Goal Mode",
+    "budget": 30,
+    "exclusions": "comma, separated, exclusions"
+  } | null
+}`;
+
+            const recentHistory = CHAT_HISTORY.slice(-6).map(h => `${h.role === 'user' ? 'Listener' : 'Concierge'}: ${h.text}`).join("\n");
+            const chatPrompt = `
+CONVERSATION HISTORY:
+${recentHistory || "No previous messages."}
+
+NEW LISTENER MESSAGE:
+"${userText}"
+`;
+
+            try {
+                const response = await requestGeminiJson(apiKey, systemInstruction, chatPrompt);
+                
+                CHAT_HISTORY.push({ role: "user", text: userText });
+                CHAT_HISTORY.push({ role: "assistant", text: response.reply });
+
+                if (Array.isArray(response.extracted_taste_insights) && response.extracted_taste_insights.length > 0) {
+                    response.extracted_taste_insights.forEach(insight => {
+                        const clean = insight.trim();
+                        if (clean && !CHAT_TASTE_INSIGHTS.includes(clean)) {
+                            CHAT_TASTE_INSIGHTS.push(clean);
+                        }
+                    });
+                    renderLearnedTasteNotes();
+                    showToast(`Updated learned taste profile with ${response.extracted_taste_insights.length} insight(s)!`, "success");
+                }
+
+                appendMessageToFeed("assistant", response.reply, response.suggested_recommender_action);
+
+            } catch (err) {
+                console.error("Chat error:", err);
+                appendMessageToFeed("assistant", `I ran into an issue connecting with Gemini: ${err.message}. Please check your API key and try again.`);
+                showToast(`Chat error: ${err.message}`, "error");
+            } finally {
+                if (typingEl) typingEl.classList.remove("hidden");
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                }
+            }
+        }
+
+        function applyChatSuggestionToRecommender(encodedGoal, budget, encodedExclusions, autoGenerate = false) {
+            const goal = decodeURIComponent(encodedGoal);
+            const exclusions = decodeURIComponent(encodedExclusions);
+
+            const goalInput = document.getElementById("goalTextInput");
+            const budgetInput = document.getElementById("budgetInput");
+            const exclusionsInput = document.getElementById("exclusionsInput");
+
+            if (goalInput) {
+                goalInput.value = goal;
+                const counter = document.getElementById("charCounter");
+                if (counter) counter.textContent = `${goal.length} / 500`;
+            }
+            if (budgetInput && budget) budgetInput.value = budget;
+            if (exclusionsInput) exclusionsInput.value = exclusions;
+
+            switchTab("prototype");
+            showToast("Applied suggested goal to Listener Controls!", "success");
+
+            if (autoGenerate) {
+                setTimeout(() => {
+                    generateGoalQueue();
+                }, 300);
+            }
+        }
+
+        function applyLearnedTasteToRecommender() {
+            if (!CHAT_TASTE_INSIGHTS.length) {
+                showToast("Chat with the AI first to discover custom taste preferences.", "info");
+                return;
+            }
+            switchTab("prototype");
+            showToast(`Syncing ${CHAT_TASTE_INSIGHTS.length} chat preference(s) with Goal Mode...`, "info");
+            setTimeout(() => {
+                generateGoalQueue();
+            }, 300);
+        }
+    </script>
+</body>
+</html>

@@ -31,7 +31,7 @@ Traditional audio recommendation algorithms rely heavily on past behavior (colla
 * **Ground-Truth Preference Ingestion**: Ingests actual YouTube playlists as a seed for user taste.
 * **Prompt-Driven Canon Expansion**: When a listener requests a specific franchise, soundtrack, or artist, Gemini identifies canonical tracks and injects them directly into the candidate recommendations pool.
 * **Automated Budget Filling**: If candidate pool items leave an unmet duration deficit, Gemini curates supplemental matching tracks to fill out the requested time.
-* **Multi-Tier Album Artwork Resolver**: Pulls high-resolution cover art from YouTube, Last.fm, and the Apple Music / iTunes index.
+* **Multi-Tier Album Artwork Resolver**: Pulls high-resolution cover art from YouTube and Last.fm.
 * **Automated Gemini Model Failover**: Gracefully recovers from temporary capacity constraints (`503` / `429` / high demand) by cycling through a reliable fallback chain (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-flash-8b`).
 
 ---

@@ -532,7 +532,7 @@
                 <div class="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 flex items-center justify-center text-sm">
                     <i class="fa-solid fa-stopwatch"></i>
                 </div>
-                <h3 class="text-sm font-semibold text-white">Exact Duration Budgeting</h3>
+                <h3 class="text-sm font-semibold text-white">Exact Duration Rangeing</h3>
                 <p class="text-xs text-slate-400 leading-relaxed">Enforces 1–120 minute queue constraints, packing audio candidates precisely to prevent over-run and respect limited user listening intervals.</p>
             </div>
 
@@ -1137,7 +1137,7 @@ STRICT MANDATORY RULES:
 2. ZERO OFF-TOPIC TRACKS: Do NOT pad with unrelated music. Every single item must be 100% genuine and relevant to "${goalText}".
 3. STRICT EXCLUSIONS: Under NO circumstances include any artist, title, or genre matching EXCLUDED TOPICS: ${JSON.stringify(excludedTopics)}.
 4. REAL DURATIONS: Provide realistic durations (typically 3 to 5 minutes each).
-5. TARGET DURATION BUDGET: Return enough authentic tracks to reach approximately ${budgetMins} minutes without exceeding it (typically ${Math.max(3, Math.floor(budgetMins / 4))} tracks).
+5. TARGET Duration Range: Return enough authentic tracks to reach approximately ${budgetMins} minutes without exceeding it (typically ${Math.max(3, Math.floor(budgetMins / 4))} tracks).
 
 Return ONLY a JSON object matching this schema:
 {
@@ -1492,7 +1492,7 @@ CURRENT QUEUE PREVIEWS: ${JSON.stringify((currentTracks || []).slice(0, 10))}
 
             if (!isPlaylistGrounded) {
                 document.getElementById("loadingStateTitle").textContent = "Direct Prompt Mode: Curating authentic tracks for your goal...";
-                document.getElementById("loadingStateSubtitle").textContent = "Enforcing negative exclusions & duration budget";
+                document.getElementById("loadingStateSubtitle").textContent = "Enforcing negative exclusions & Duration Range";
             } else {
                 document.getElementById("loadingStateTitle").textContent = "Parsing goal & evaluating candidate pool...";
                 document.getElementById("loadingStateSubtitle").textContent = "Enforcing budget constraints & topic exclusions";
@@ -1639,7 +1639,7 @@ ${compactCatalogPrompt}
                             }
                             parsedData.recommendations.push({
                                 content_id: ft.id,
-                                reason: ft.reason || `Curated to fill the ${budgetMins}-minute duration budget.`
+                                reason: ft.reason || `Curated to fill the ${budgetMins}-minute Duration Range.`
                             });
                             addedFillerDuration += ft.duration;
                         });
@@ -2025,7 +2025,7 @@ Your purpose is to have an intelligent, musical dialogue with the listener about
 
 CURRENT RECOMMENDER & SESSION CONTEXT:
 - Active Goal: "${currentGoal}"
-- Duration Budget: ${currentBudget} minutes
+- Duration Range: ${currentBudget} minutes
 - Active Exclusions: "${currentExclusions}"
 - Playlist Loaded: ${playlistCount > 0 ? `Yes (${playlistCount} songs)` : 'No (direct prompt mode)'}
 - Current Active Queue Recommendations: ${JSON.stringify(currentQueueSnapshot.map(t => ({ title: t.title, artist: t.artist, duration: t.duration, reason: t.reason })))}
